@@ -1,0 +1,5 @@
+/proj_*
+!/proj_*.c
+/core
+/Makefile
+/tute9*
