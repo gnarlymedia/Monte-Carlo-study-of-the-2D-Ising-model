@@ -124,6 +124,11 @@ void display_scatter_char(char ** array, int rows, int cols, int pos_incr, char 
 
 }
 
+char interr_array(char ** array, int x_pos, int y_pos)
+{
+    return array[x_pos][y_pos];
+}
+
 int main(void)
 {
     int j, k;
@@ -149,10 +154,8 @@ int main(void)
 
 //    print_array_c(Array, xsize, ysize);
 
-    /*
- * Call ppgbeg to initiate PGPLOT and open the output device; cpgbeg
- * will prompt the user to supply the device name and type.
- */
+    // Initiate cpgplot and open output device
+
 //    if (1 != cpgbeg(0, "?", 1, 1))
     if (1 != cpgbeg(0, "/XWINDOW", 1, 1))
 //    if (1 != cpgbeg(0, "proj_3_plot.ps/CPS", 1, 1))
@@ -164,6 +167,9 @@ int main(void)
     display_scatter_char(Array, xsize, ysize, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
 
     cpgend();
+
+    // find 4,7th element of array
+    printf("The 4, 7th element of array: %c", interr_array(Array, 4, 7));
 
     destroy_2d_array_c(Array, xsize); // deallocate the memory
 }
