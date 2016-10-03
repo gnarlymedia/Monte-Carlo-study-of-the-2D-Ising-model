@@ -20,7 +20,7 @@
 
 #define LOWER_LIMIT_OF_BETA_VALUES 0.1
 #define UPPER_LIMIT_OF_BETA_VALUES 1.0
-#define BETA_INCR 0.02
+#define BETA_INCR 0.01
 
 #define ARRAY_SIZE 10000
 
@@ -341,7 +341,7 @@ double calc_mag_site(char **array, int x_pos, int y_pos)
     }
 }
 
-double calc_mag_of_lattice(char **array, int x_size, int y_size, int lattice_size)
+double calc_mag_of_lattice(char **array, int x_size, int y_size)
 {
     double mag_sum = 0.0;
     int j, k;
@@ -352,18 +352,17 @@ double calc_mag_of_lattice(char **array, int x_size, int y_size, int lattice_siz
         }
     }
 
-    return mag_sum / lattice_size;
+    return mag_sum / (x_size * y_size);
 }
 
-double calc_variance_of_lattice(char **array, int x_size, int y_size, int lattice_size, double mag)
+double calc_variance_of_lattice(double *mag_arr_across_sweeps, int no_of_measurements, double magnetisation_mean,
+                                int lattice_size)
 {
     double var_sum = 0.0;
-    int j, k;
+    int i;
 
-    for (j = 0; j < x_size; j++) {
-        for (k = 0; k < y_size; k++) {
-            var_sum = var_sum + pow(calc_mag_site(array, j, k) - mag, 2.0);
-        }
+    for (i = 0; i < no_of_measurements; i++) {
+        var_sum = var_sum + pow(mag_arr_across_sweeps[i] - magnetisation_mean, 2.0);
     }
 
     return var_sum / (lattice_size - 1);
@@ -486,7 +485,39 @@ void disp_line(int num, double x_vals[], double y_vals[], char * heading, char *
     cpgebuf();
 }
 
-void disp_line_spec_axis(int num, double x_vals[], double y_vals[], float x_min, float x_max, float y_min, float y_max, char *heading, char *x_label, char *y_label)
+void disp_line_spec_axis(int num, double x_vals[], double y_vals[], double err_vals[], float x_min, float x_max, float y_min, float y_max, char *heading, char *x_label, char *y_label)
+{
+    int j = 0;
+    static float f_x_vals[ARRAY_SIZE];
+    static float f_y_vals[ARRAY_SIZE];
+    static float f_err_vals[ARRAY_SIZE];
+    for(j = 0; j < num; j++)
+    {
+        f_x_vals[j] = x_vals[j];
+        f_y_vals[j] = y_vals[j];
+        f_err_vals[j] = err_vals[j];
+    }
+    cpgbbuf();
+    /*
+     * Now plot a histogram
+     */
+
+    cpgenv(x_min, x_max, y_min, y_max, 0, 2);
+
+    // for outputting to ps file
+    cpgsci(1);
+
+    cpgline(num, f_x_vals, f_y_vals);
+
+    cpgerrb(6, num, f_x_vals, f_y_vals, f_err_vals, 1.0);
+
+//    printf("v_min: %f, v_max: %f", v_min, v_max);
+    cpglab(x_label, y_label, heading);
+
+    cpgebuf();
+}
+
+void disp_err_bar(int num, double x_vals[], double y_vals[], float x_min, float x_max, float y_min, float y_max, char *heading, char *x_label, char *y_label)
 {
     int j = 0;
     static float f_x_vals[ARRAY_SIZE];
@@ -501,8 +532,7 @@ void disp_line_spec_axis(int num, double x_vals[], double y_vals[], float x_min,
      * Now plot a histogram
      */
 
-    // for display
-//    cpgsci(15);
+    cpgenv(x_min, x_max, y_min, y_max, 0, 2);
 
     // for outputting to ps file
     cpgsci(1);
@@ -511,9 +541,8 @@ void disp_line_spec_axis(int num, double x_vals[], double y_vals[], float x_min,
 
 //    printf("v_min: %f, v_max: %f", v_min, v_max);
     cpglab(x_label, y_label, heading);
-    // cpgsave saves the current graphics
-    cpgsave();
 
+    cpgebuf();
 }
 
 int main(void)
@@ -526,7 +555,7 @@ int main(void)
     int no_of_beta_vals = (int) ((UPPER_LIMIT_OF_BETA_VALUES - LOWER_LIMIT_OF_BETA_VALUES) / BETA_INCR);
     int lattice_size;
     int knuth_arr_size, sweep_counter, beta_int;
-    double beta, magnetisation, energy;
+    double beta, magnetisation_mean, magnetisation_within_sweep, energy, variance;
     char plot_heading[256];
 
     //    if (cpgbeg(0, "?", 1, 1) != 1) {
@@ -539,26 +568,28 @@ int main(void)
     for (curr_latt_side = MIN_LATTICE_SIDE; curr_latt_side <= MAX_LATTICE_SIDE; curr_latt_side = curr_latt_side + LATTICE_SIDE_INCR) {
         // Allocate a region of memory of size curr_latt_side*curr_latt_side*sizeof(double) and return a pointer to it
         char **Array = create_2d_array_c(curr_latt_side, curr_latt_side);
-        fill_2d_array_c(Array, curr_latt_side, curr_latt_side, "hot");
+        fill_2d_array_c(Array, curr_latt_side, curr_latt_side, "cold");
 
 //        print_array_c(Array, curr_latt_side, curr_latt_side);
 
         lattice_size = curr_latt_side * curr_latt_side;
         int *knuth_arr = create_1d_array_i(lattice_size);
-        double *beta_arr = create_1d_array_d(no_of_beta_vals);
-        double *mag_arr = create_1d_array_d(no_of_beta_vals);
+        double *beta_arr_for_beta_val = create_1d_array_d(no_of_beta_vals);
+        double *mag_arr_for_beta_val = create_1d_array_d(no_of_beta_vals);
+        double *variance_arr_for_beta_val = create_1d_array_d(no_of_beta_vals);
+        int number_of_sweeps = (MAX_SWEEPS - 100) / MEASUREMENT_SWEEP_SEPARATION;
+        double *mag_arr_across_sweeps = create_1d_array_d(number_of_sweeps);
+        int count_mag_across_sweeps;
+        double mag_median_sum_across_sweeps = 0.0;
 
         //    display_scatter_arr_char(Array, curr_latt_side, curr_latt_side, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
-
-        //    printf("Table\n\n");
-        //    printf("beta\t\tmagnetisation\n");
 
         knuth_arr_size = 0;
         fill_knuth_1d(knuth_arr, lattice_size, &knuth_arr_size);
 
         for (beta_int = 1; beta_int < no_of_beta_vals; beta_int++) {
             beta = BETA_INCR * beta_int;
-            beta_arr[beta_int] = beta;
+            beta_arr_for_beta_val[beta_int] = beta;
             for (sweep_counter = 0; sweep_counter < MAX_SWEEPS; sweep_counter++) {
                 knuth(knuth_arr, knuth_arr_size);
                 //            print_array_knuth(knuth_arr, knuth_arr_size);
@@ -566,32 +597,35 @@ int main(void)
                 sweep_2d_array(Array, curr_latt_side, curr_latt_side, knuth_arr, knuth_arr_size, beta);
                 //        printf("Flipped element of array at x = %d, y = %d: %c\n", x_rand_i, y_rand_i, query_array(Array, x_rand_i, y_rand_i, curr_latt_side, curr_latt_side));
 
+                count_mag_across_sweeps = 0;
+
                 if (sweep_counter > 100 && sweep_counter % MEASUREMENT_SWEEP_SEPARATION == 0) {
                     // take a measurement
-                    energy = calc_energy_of_lattice(Array, curr_latt_side, curr_latt_side);
+//                    energy = calc_energy_of_lattice(Array, curr_latt_side, curr_latt_side);
+                    magnetisation_within_sweep = calc_mag_of_lattice(Array, curr_latt_side, curr_latt_side);
+                    mag_arr_across_sweeps[count_mag_across_sweeps] = magnetisation_within_sweep;
+                    count_mag_across_sweeps++;
 
-                    //                printf("Energy after %d sweeps: %lf\n", sweep_counter, energy);
-                    //                printf("Magnetisation after %d sweeps: %lf\n", sweep_counter, magnetisation);
+                    mag_median_sum_across_sweeps = mag_median_sum_across_sweeps + magnetisation_within_sweep;
                 }
             }
 
-            magnetisation = calc_mag_of_lattice(Array, curr_latt_side, curr_latt_side, lattice_size);
-            mag_arr[beta_int] = magnetisation;
-
-//            printf("Energy after %d sweeps: %lf\n", sweep_counter, calc_energy_of_lattice(Array, curr_latt_side, curr_latt_side));
-//            printf("Magnetisation after %d sweeps: %lf\n", sweep_counter, magnetisation);
-//            printf("\n");
+            magnetisation_mean = mag_median_sum_across_sweeps / count_mag_across_sweeps;
+            variance = calc_variance_of_lattice(mag_arr_across_sweeps, count_mag_across_sweeps, magnetisation_mean, lattice_size);
+            variance_arr_for_beta_val[beta_int] = variance;
+            mag_arr_for_beta_val[beta_int] = magnetisation_mean;
         }
 
         //    display_scatter_arr_char(Array, curr_latt_side, curr_latt_side, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
 
         snprintf(plot_heading, sizeof(plot_heading), "Magnetisation versus beta - lattice side: %d", curr_latt_side);
-        disp_line(beta_int, beta_arr, mag_arr, plot_heading, "Beta", "Magnetisation");
+//        disp_line(beta_int, beta_arr_for_beta_val, mag_arr_for_beta_val, plot_heading, "Beta", "Magnetisation");
+        disp_line_spec_axis(beta_int, beta_arr_for_beta_val, mag_arr_for_beta_val, variance_arr_for_beta_val, 0.0, 1.0, 0.0, 1.0, plot_heading, "Beta", "Magnetisation");
 
         destroy_1d_array_i(knuth_arr);
         destroy_2d_array_c(Array, curr_latt_side); // deallocate the memory
-        destroy_1d_array_d(beta_arr);
-        destroy_1d_array_d(mag_arr);
+        destroy_1d_array_d(beta_arr_for_beta_val);
+        destroy_1d_array_d(mag_arr_for_beta_val);
     }
 
     cpgend();
