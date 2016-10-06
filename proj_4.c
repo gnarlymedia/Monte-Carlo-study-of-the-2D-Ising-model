@@ -620,7 +620,14 @@ int main(void)
 
         snprintf(plot_heading, sizeof(plot_heading), "Magnetisation versus beta - lattice side: %d", curr_latt_side);
 //        disp_line(beta_int, beta_arr_for_beta_val, mag_arr_for_beta_val, plot_heading, "Beta", "Magnetisation");
-        disp_line_spec_axis(beta_int, beta_arr_for_beta_val, mag_arr_for_beta_val, variance_arr_for_beta_val, 0.0, 1.0, 0.0, 1.0, plot_heading, "Beta", "Magnetisation");
+
+
+        int test_counter;
+        for (test_counter = 0; test_counter < beta_int; test_counter++) {
+            printf("count_beta_vals: %d, beta: %lf, mag: %lf\n", test_counter, beta_arr_for_beta_val[test_counter], mag_arr_for_beta_val[test_counter]);
+        }
+
+//        disp_line_spec_axis(beta_int, beta_arr_for_beta_val, mag_arr_for_beta_val, variance_arr_for_beta_val, 0.0, 1.0, 0.0, 1.0, plot_heading, "Beta", "Magnetisation");
 
         destroy_1d_array_i(knuth_arr);
         destroy_2d_array_c(Array, curr_latt_side); // deallocate the memory
