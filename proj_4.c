@@ -14,8 +14,8 @@
 #define MAX_SWEEPS 1100
 #define MEASUREMENT_SWEEP_SEPARATION 10
 
-#define MIN_LATTICE_SIDE 35
-#define MAX_LATTICE_SIDE 35
+#define MIN_LATTICE_SIDE 30
+#define MAX_LATTICE_SIDE 30
 #define LATTICE_SIDE_INCR 5
 
 #define BETA_LOWER 0.1
@@ -27,15 +27,6 @@
 double boltzmann_const = 1.38064852e-23;
 // critical temperature for phase change
 double beta_sub_c = 0.4407;
-
-//
-// create 1 D array of char in memory
-//
-char * create_1d_array_c(int cols)
-{
-    char * p1dArray = malloc(cols*sizeof(char));
-    return p1dArray;
-}
 
 //
 // create 1 D array of int in memory
@@ -59,14 +50,6 @@ double * create_1d_array_d(int cols)
 // Destroy a created 1D array of int
 //
 void destroy_1d_array_i(int p1dArray[])
-{
-    free(p1dArray);
-}
-
-//
-// Destroy a created 1D array of char
-//
-void destroy_1d_array_c(char p1dArray[])
 {
     free(p1dArray);
 }
@@ -99,35 +82,6 @@ char ** create_2d_array_c(int rows, int cols)
 // Destroy a 2D array of dimensions (rows,[]) of char in memory
 //
 void destroy_2d_array_c(char *array[], int rows)
-{
-    int i=0;
-    for(i=0;i<rows;i++)
-    {
-        free(array[i]);
-    }
-    free(array);
-}
-
-//
-// Create an array of dimensions (rows,cols) of int in memory
-//
-int ** create_2d_array_i(int rows, int cols)
-{
-    int ** p2dArray;
-    p2dArray = (int **) malloc(rows*sizeof(char *));
-    int i = 0;
-    for(i=0; i< rows; i++)
-    {
-        p2dArray[i] = (int *) malloc(cols*sizeof(int));
-    }
-    return p2dArray;
-}
-
-
-//
-// Destroy a 2D array of dimensions (rows,[]) of int in memory
-//
-void destroy_2d_array_i(int *array[], int rows)
 {
     int i=0;
     for(i=0;i<rows;i++)
@@ -417,75 +371,6 @@ void knuth(int one_d_array[], int size)
             }
         }
     }
-}
-
-double calc_energy_of_lattice(char ** Array, int x_size, int y_size)
-{
-    double energy = 0.0;
-    int j, k;
-
-    for (j = 0; j < x_size; j++) {
-        for (k = 0; k < y_size; k++) {
-            energy = energy + flip_and_calc_delta_e(Array, j, k, x_size, y_size);
-        }
-    }
-
-    return energy;
-}
-
-void disp_line(int num, double x_vals[], double y_vals[], char * heading, char * x_label, char * y_label)
-{
-    int j = 0;
-    static float f_x_vals[ARRAY_SIZE];
-    static float f_y_vals[ARRAY_SIZE];
-    float x_min = 1.0e30;
-    float x_max = -1.0e30;
-    float y_min = 1.0e30;
-    float y_max = -1.0e30;
-    for(j = 0; j < num; j++)
-    {
-        f_x_vals[j] = x_vals[j];
-        f_y_vals[j] = y_vals[j];
-        if (f_x_vals[j] < x_min)
-        {
-            x_min = f_x_vals[j];
-        }
-        if (f_x_vals[j] > x_max)
-        {
-            x_max = f_x_vals[j];
-        }
-        if (f_y_vals[j] < y_min)
-        {
-            y_min = f_y_vals[j];
-        }
-        if (f_y_vals[j] > y_max)
-        {
-            y_max = f_y_vals[j];
-        }
-    }
-
-    // start buffering
-    cpgbbuf();
-
-    cpgenv(x_min, x_max, y_min, y_max, 0, 2);
-    /*
-     * Now plot a histogram
-     */
-
-    // for outputting to ps file
-    cpgsci(1);
-
-    cpgline(num, f_x_vals, f_y_vals);
-
-//    printf("v_min: %f, v_max: %f", v_min, v_max);
-    cpglab(x_label, y_label, heading);
-
-//    cpgsave();
-
-//    cpgpage();
-
-    // end buffering
-    cpgebuf();
 }
 
 void disp_line_spec_axis(int num, double x_vals[], double y_vals[], double std_dev_vals[], float x_min, float x_max, float y_min, float y_max, char *heading, char *x_label, char *y_label)
