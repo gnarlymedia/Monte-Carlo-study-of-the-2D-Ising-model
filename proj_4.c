@@ -14,15 +14,15 @@
 #define MAX_SWEEPS 1100
 #define MEASUREMENT_SWEEP_SEPARATION 10
 
-#define MIN_LATTICE_SIDE 30
-#define MAX_LATTICE_SIDE 30
+#define MIN_LATTICE_SIDE 65
+#define MAX_LATTICE_SIDE 65
 #define LATTICE_SIDE_INCR 5
 
 #define BETA_LOWER 0.1
 #define BETA_UPPER 1.0
 #define BETA_INCR 0.01
 
-#define ARRAY_SIZE 10000
+#define ARRAY_SIZE 90
 
 double boltzmann_const = 1.38064852e-23;
 // critical temperature for phase change
@@ -31,7 +31,7 @@ double beta_sub_c = 0.4407;
 //
 // create 1 D array of int in memory
 //
-int * create_1d_array_i(int cols)
+static int * create_1d_array_i(int cols)
 {
     int * p1dArray = malloc(cols*sizeof(int));
     return p1dArray;
@@ -40,7 +40,7 @@ int * create_1d_array_i(int cols)
 //
 // create 1 D array of double in memory
 //
-double * create_1d_array_d(int cols)
+static double * create_1d_array_d(int cols)
 {
     double * p1dArray = malloc(cols*sizeof(double));
     return p1dArray;
@@ -49,7 +49,7 @@ double * create_1d_array_d(int cols)
 //
 // Destroy a created 1D array of int
 //
-void destroy_1d_array_i(int p1dArray[])
+static void destroy_1d_array_i(int p1dArray[])
 {
     free(p1dArray);
 }
@@ -57,7 +57,7 @@ void destroy_1d_array_i(int p1dArray[])
 //
 // Destroy a created 1D array of double
 //
-void destroy_1d_array_d(double p1dArray[])
+static void destroy_1d_array_d(double p1dArray[])
 {
     free(p1dArray);
 }
@@ -81,7 +81,7 @@ char ** create_2d_array_c(int rows, int cols)
 //
 // Destroy a 2D array of dimensions (rows,[]) of char in memory
 //
-void destroy_2d_array_c(char *array[], int rows)
+static void destroy_2d_array_c(char *array[], int rows)
 {
     int i=0;
     for(i=0;i<rows;i++)
@@ -91,7 +91,7 @@ void destroy_2d_array_c(char *array[], int rows)
     free(array);
 }
 
-void print_array_c(char ** array, int rows, int cols)
+static void print_array_c(char ** array, int rows, int cols)
 {
     int i,j;
     for(i=0;i<rows;i++)
@@ -105,7 +105,7 @@ void print_array_c(char ** array, int rows, int cols)
     }
 }
 
-void display_scatter_arr_char(char **array, int rows, int cols, int pos_incr, char *heading, char *x_label,
+static void display_scatter_arr_char(char **array, int rows, int cols, int pos_incr, char *heading, char *x_label,
                               char *y_label)
 {
     static float fxp[1];
@@ -180,14 +180,14 @@ char query_array(char **array, int x_pos, int y_pos, int x_size, int y_size)
     return array[x_pos][y_pos];
 }
 
-int get_spin_val_from_char(char this_spin_char)
+static int get_spin_val_from_char(char this_spin_char)
 {
     int val = this_spin_char == 'u' ? 1 : -1;
 //    printf("Val: %d\n", val);
     return val;
 }
 
-double flip_and_calc_delta_e(char **array, int x_pos, int y_pos, int x_size, int y_size)
+static double calc_delta_e(char **array, int x_pos, int y_pos, int x_size, int y_size)
 {
     double val;
 
@@ -208,7 +208,7 @@ double flip_and_calc_delta_e(char **array, int x_pos, int y_pos, int x_size, int
     return val;
 }
 
-void sweep_2d_array(char **array, int x_size, int y_size, int *knuth_arr, int knuth_size, double beta)
+static void sweep_2d_array(char **array, int x_size, int y_size, int *knuth_arr, int knuth_size, double beta)
 {
     int x_pos, y_pos, k_count, this_k_val;
     double this_delta_e;
@@ -218,9 +218,7 @@ void sweep_2d_array(char **array, int x_size, int y_size, int *knuth_arr, int kn
         x_pos = this_k_val % x_size;
         y_pos = (int)floor((double)(this_k_val / x_size));
 
-        char test = array[x_pos][y_pos];
-
-        this_delta_e = flip_and_calc_delta_e(array, x_pos, y_pos, x_size, y_size);
+        this_delta_e = calc_delta_e(array, x_pos, y_pos, x_size, y_size);
 
 //        printf("This delta_e: %lf\n", this_delta_e);
 
@@ -235,7 +233,7 @@ void sweep_2d_array(char **array, int x_size, int y_size, int *knuth_arr, int kn
     }
 }
 
-void fill_2d_array_c(char ** array, int x_size, int y_size, char * start)
+static void fill_2d_array_c(char ** array, int x_size, int y_size, char * start)
 {
     int j, k, boundary;
     // set default value for cold start
@@ -291,7 +289,7 @@ void fill_2d_array_c(char ** array, int x_size, int y_size, char * start)
     }
 }
 
-double calc_mag_site(char **array, int x_pos, int y_pos)
+static double calc_mag_site(char **array, int x_pos, int y_pos)
 {
     if (array[x_pos][y_pos] == 'u') {
         return 1.0;
@@ -300,7 +298,7 @@ double calc_mag_site(char **array, int x_pos, int y_pos)
     }
 }
 
-double calc_mag_of_lattice(char **array, int x_size, int y_size)
+static double calc_mag_of_lattice(char **array, int x_size, int y_size)
 {
     double mag_sum = 0.0;
     int j, k;
@@ -314,7 +312,7 @@ double calc_mag_of_lattice(char **array, int x_size, int y_size)
     return fabs(mag_sum) / (x_size * y_size);
 }
 
-double calc_variance_of_lattice(double *mag_arr_across_sweeps, int no_of_measurements, double magnetisation_mean, int lattice_size)
+static double calc_variance_of_lattice(double *mag_arr_across_sweeps, int no_of_measurements, double magnetisation_mean, int lattice_size)
 {
     double var_sum = 0.0;
     int i;
@@ -326,7 +324,7 @@ double calc_variance_of_lattice(double *mag_arr_across_sweeps, int no_of_measure
     return sqrt(var_sum / (lattice_size - 1));
 }
 
-void fill_knuth_1d(int *knuth_arr, int size)
+static void fill_knuth_1d(int *knuth_arr, int size)
 {
     int i;
 
@@ -336,7 +334,7 @@ void fill_knuth_1d(int *knuth_arr, int size)
     }
 }
 
-void print_array_knuth(int * array, int size)
+static void print_array_knuth(int * array, int size)
 {
     int i;
     for(i=0; i < size; i++)
@@ -347,33 +345,27 @@ void print_array_knuth(int * array, int size)
     printf("\n");
 }
 
-void swap_elements_one_d_arr(int one_d_array[], int pos_1, int pos_2)
+static void swap_elements_one_d_arr(int one_d_array[], int pos_1, int pos_2)
 {
     int temp = one_d_array[pos_1];
     one_d_array[pos_1] = one_d_array[pos_2];
     one_d_array[pos_2] = temp;
 }
 
-void knuth(int one_d_array[], int size)
+static void knuth(int one_d_array[], int size)
 {
-    int i, j;
-    double boundary;
-    int found;
+    int i, spot, temp;
 
     for (i = 0; i < size; i++) {
-        boundary = (double)i + drand48() * (double)(size - i - 1);
-        found = 0;
-        for (j = i + 1; j < size && 0 == found; j++) {
-            if (boundary < (double)j) {
-//                printf("knuth i: %d, j: %d\n", i, j);
-                swap_elements_one_d_arr(one_d_array, i, j);
-                found = 1;
-            }
-        }
+        spot = (int)(drand48() * (double)size);
+
+        temp = one_d_array[i];
+        one_d_array[i] = one_d_array[spot];
+        one_d_array[spot] = temp;
     }
 }
 
-void disp_line_spec_axis(int num, double x_vals[], double y_vals[], double std_dev_vals[], float x_min, float x_max, float y_min, float y_max, char *heading, char *x_label, char *y_label)
+static void disp_line_spec_axis(int num, double x_vals[], double y_vals[], double std_dev_vals[], float x_min, float x_max, float y_min, float y_max, char *heading, char *x_label, char *y_label)
 {
     int i, j;
     double largest_std_dev = 0.0;
@@ -451,7 +443,7 @@ void disp_line_spec_axis(int num, double x_vals[], double y_vals[], double std_d
     cpgebuf();
 }
 
-void disp_err_bar(int num, double x_vals[], double y_vals[], float x_min, float x_max, float y_min, float y_max, char *heading, char *x_label, char *y_label)
+static void disp_err_bar(int num, double x_vals[], double y_vals[], float x_min, float x_max, float y_min, float y_max, char *heading, char *x_label, char *y_label)
 {
     int j = 0;
     static float f_x_vals[ARRAY_SIZE];
@@ -479,7 +471,7 @@ void disp_err_bar(int num, double x_vals[], double y_vals[], float x_min, float 
     cpgebuf();
 }
 
-void disp_ferro_mag_domains_scttr_plt(char ** array, int x_size, int y_size, char * heading, char *x_label, char * y_label)
+static void disp_ferro_mag_domains_scttr_plt(char ** array, int x_size, int y_size, char * heading, char *x_label, char * y_label)
 {
     static float f_xp[ARRAY_SIZE+1];
     static float f_yp[ARRAY_SIZE+1];

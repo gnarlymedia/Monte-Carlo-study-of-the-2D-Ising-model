@@ -3,3 +3,5 @@
 /core
 /Makefile
 /tute9*
+/gmon.out
+/prof_output
