@@ -14,13 +14,14 @@
 #define MAX_SWEEPS 1100
 #define MEASUREMENT_SWEEP_SEPARATION 10
 
-#define MIN_LATTICE_SIDE 65
-#define MAX_LATTICE_SIDE 65
-#define LATTICE_SIDE_INCR 5
+#define LATTICE_SIDE_X 1000
+#define LATTICE_SIDE_Y 1000
 
 #define BETA_LOWER 0.1
 #define BETA_UPPER 1.0
 #define BETA_INCR 0.01
+
+#define FERRO_MAG_DOMAINS_BETA 0.44
 
 #define ARRAY_SIZE 90
 
@@ -83,8 +84,8 @@ char ** create_2d_array_c(int rows, int cols)
 //
 static void destroy_2d_array_c(char *array[], int rows)
 {
-    int i=0;
-    for(i=0;i<rows;i++)
+    int i;
+    for(i = 0; i < rows; i++)
     {
         free(array[i]);
     }
@@ -473,8 +474,8 @@ static void disp_err_bar(int num, double x_vals[], double y_vals[], float x_min,
 
 static void disp_ferro_mag_domains_scttr_plt(char ** array, int x_size, int y_size, char * heading, char *x_label, char * y_label)
 {
-    static float f_xp[ARRAY_SIZE+1];
-    static float f_yp[ARRAY_SIZE+1];
+    static float f_xp[LATTICE_SIDE_X * LATTICE_SIDE_Y];
+    static float f_yp[LATTICE_SIDE_X * LATTICE_SIDE_Y];
 
     int j, k;
     int array_counter = 0;
@@ -482,8 +483,8 @@ static void disp_ferro_mag_domains_scttr_plt(char ** array, int x_size, int y_si
     for (j = 0; j < x_size; j++) {
         for (k = 0; k < y_size; k++) {
             if (array[j][k] == 'u') {
-                f_xp[array_counter] = j;
-                f_yp[array_counter] = k;
+                f_xp[array_counter] = (float) j;
+                f_yp[array_counter] = (float) k;
                 array_counter++;
             }
         }
@@ -498,8 +499,10 @@ static void disp_ferro_mag_domains_scttr_plt(char ** array, int x_size, int y_si
     //
     // Set up the dispay region
     //
-    cpgenv(fxmin, fxmax, fymin, fymax, 0, 1);
     cpgbbuf();
+
+    cpgsci(1);
+    cpgenv(fxmin, fxmax, fymin, fymax, 0, 1);
     /*
      * Now make scatter plot with small dots plotted
      */
@@ -513,7 +516,7 @@ static void disp_ferro_mag_domains_scttr_plt(char ** array, int x_size, int y_si
 
 int main(void)
 {
-    int j, k, curr_latt_side;
+    int j, k;
     char spin;
     srand48((int) time(NULL));
 
@@ -525,8 +528,8 @@ int main(void)
     char plot_heading[256];
 
     //    if (cpgbeg(0, "?", 1, 1) != 1) {
-    if (cpgbeg(0, "/XWINDOW", 1, 1) != 1) {
-//        if (cpgbeg(0, "proj_4_plot.ps/CPS", 1, 1) != 1) {
+//    if (cpgbeg(0, "/XWINDOW", 1, 1) != 1) {
+    if (cpgbeg(0, "proj_4_plot.ps/CPS", 1, 1) != 1) {
         exit(EXIT_FAILURE);
     }
     cpgask(1);
@@ -537,59 +540,62 @@ int main(void)
     number_of_measurements_per_beta = (MAX_SWEEPS - 100) / MEASUREMENT_SWEEP_SEPARATION;
     double *mag_arr_per_beta = create_1d_array_d(number_of_measurements_per_beta);
 
-    for (curr_latt_side = MIN_LATTICE_SIDE; curr_latt_side <= MAX_LATTICE_SIDE; curr_latt_side = curr_latt_side + LATTICE_SIDE_INCR) {
-        // Allocate a region of memory of size curr_latt_side*curr_latt_side*sizeof(double) and return a pointer to it
-        char **Array = create_2d_array_c(curr_latt_side, curr_latt_side);
-        fill_2d_array_c(Array, curr_latt_side, curr_latt_side, "cold");
+    // Allocate a region of memory of size LATTICE_SIDE_X*LATTICE_SIDE_Y*sizeof(double) and return a pointer to it
+    char **Array = create_2d_array_c(LATTICE_SIDE_X, LATTICE_SIDE_Y);
+    fill_2d_array_c(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, "cold");
 
-//        print_array_c(Array, curr_latt_side, curr_latt_side);
+//        print_array_c(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y);
 
-        lattice_size = curr_latt_side * curr_latt_side;
-        int *knuth_arr = create_1d_array_i(lattice_size);
+    lattice_size = LATTICE_SIDE_X * LATTICE_SIDE_Y;
+    int *knuth_arr = create_1d_array_i(lattice_size);
 
-        //    display_scatter_arr_char(Array, curr_latt_side, curr_latt_side, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
+    //    display_scatter_arr_char(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
 
-        fill_knuth_1d(knuth_arr, lattice_size);
+    fill_knuth_1d(knuth_arr, lattice_size);
 
-        count_beta_vals = 0;
+    count_beta_vals = 0;
 
-        for (beta = BETA_LOWER; beta <= BETA_UPPER; beta = beta + BETA_INCR) {
+    for (beta = BETA_LOWER; beta <= BETA_UPPER; beta = beta + BETA_INCR) {
 //            beta = BETA_INCR * count_beta_vals;
-            beta_arr_for_beta_val[count_beta_vals] = beta;
-            mag_measurement_index_per_beta = 0;
-            mag_mean_sum_per_beta = 0.0;
+        beta_arr_for_beta_val[count_beta_vals] = beta;
+        mag_measurement_index_per_beta = 0;
+        mag_mean_sum_per_beta = 0.0;
 
-            for (sweep_counter = 0; sweep_counter < MAX_SWEEPS; sweep_counter++) {
-                knuth(knuth_arr, lattice_size);
-                //            print_array_knuth(knuth_arr, knuth_arr_size);
+        for (sweep_counter = 0; sweep_counter < MAX_SWEEPS; sweep_counter++) {
+            knuth(knuth_arr, lattice_size);
+            //            print_array_knuth(knuth_arr, knuth_arr_size);
 
-                sweep_2d_array(Array, curr_latt_side, curr_latt_side, knuth_arr, lattice_size, beta);
-                //        printf("Flipped element of array at x = %d, y = %d: %c\n", x_rand_i, y_rand_i, query_array(Array, x_rand_i, y_rand_i, curr_latt_side, curr_latt_side));
+            sweep_2d_array(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, knuth_arr, lattice_size, beta);
+            //        printf("Flipped element of array at x = %d, y = %d: %c\n", x_rand_i, y_rand_i, query_array(Array, x_rand_i, y_rand_i, LATTICE_SIDE_X, LATTICE_SIDE_Y));
 
-                // allow 100 sweeps before measuring
-                // and only measure magnetisation every so often
-                if (sweep_counter > 100 && sweep_counter % MEASUREMENT_SWEEP_SEPARATION == 0) {
-                    // take a measurement
-//                    energy = calc_energy_of_lattice(Array, curr_latt_side, curr_latt_side);
-                    this_magnetisation = calc_mag_of_lattice(Array, curr_latt_side, curr_latt_side);
-                    mag_arr_per_beta[mag_measurement_index_per_beta] = this_magnetisation;
-                    mag_mean_sum_per_beta = mag_mean_sum_per_beta + this_magnetisation;
+            // allow 100 sweeps before measuring
+            // and only measure magnetisation every so often
+            if (sweep_counter > 100 && sweep_counter % MEASUREMENT_SWEEP_SEPARATION == 0) {
+                // take a measurement
+//                    energy = calc_energy_of_lattice(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y);
+                this_magnetisation = calc_mag_of_lattice(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y);
+                mag_arr_per_beta[mag_measurement_index_per_beta] = this_magnetisation;
+                mag_mean_sum_per_beta = mag_mean_sum_per_beta + this_magnetisation;
 
-                    mag_measurement_index_per_beta++;
-                }
+                mag_measurement_index_per_beta++;
             }
-
-            magnetisation_mean = mag_mean_sum_per_beta / (mag_measurement_index_per_beta + 1);
-            variance = calc_variance_of_lattice(mag_arr_per_beta, mag_measurement_index_per_beta, magnetisation_mean, lattice_size);
-            variance_arr_for_beta_val[count_beta_vals] = variance;
-            mag_arr_for_beta_val[count_beta_vals] = magnetisation_mean;
-
-            count_beta_vals++;
         }
 
-        //    display_scatter_arr_char(Array, curr_latt_side, curr_latt_side, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
+        magnetisation_mean = mag_mean_sum_per_beta / (mag_measurement_index_per_beta + 1);
+        variance = calc_variance_of_lattice(mag_arr_per_beta, mag_measurement_index_per_beta, magnetisation_mean, lattice_size);
+        variance_arr_for_beta_val[count_beta_vals] = variance;
+        mag_arr_for_beta_val[count_beta_vals] = magnetisation_mean;
 
-        snprintf(plot_heading, sizeof(plot_heading), "Magnetisation versus beta - lattice side: %d", curr_latt_side);
+        count_beta_vals++;
+
+        if (beta >= FERRO_MAG_DOMAINS_BETA && beta <= FERRO_MAG_DOMAINS_BETA + BETA_INCR) {
+            disp_ferro_mag_domains_scttr_plt(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, "Ferro-magnetic domains", "x-axis", "y-axis");
+        }
+    }
+
+    //    display_scatter_arr_char(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
+
+    snprintf(plot_heading, sizeof(plot_heading), "Magnetisation versus beta - lattice side x: %d, lattice side y: %d", LATTICE_SIDE_X, LATTICE_SIDE_Y);
 //        disp_line(count_beta_vals, beta_arr_for_beta_val, mag_arr_for_beta_val, plot_heading, "Beta", "Magnetisation");
 
 //        int test_counter;
@@ -597,15 +603,11 @@ int main(void)
 //            printf("count_beta_vals: %d, beta: %lf, mag: %lf\n", test_counter, beta_arr_for_beta_val[test_counter], mag_arr_for_beta_val[test_counter]);
 //        }
 
-        disp_line_spec_axis(count_beta_vals, beta_arr_for_beta_val, mag_arr_for_beta_val, variance_arr_for_beta_val, 0.1, 1.0, 0.0, 1.0, plot_heading, "Beta", "Magnetisation");
+    disp_line_spec_axis(count_beta_vals, beta_arr_for_beta_val, mag_arr_for_beta_val, variance_arr_for_beta_val, 0.1, 1.0, 0.0, 1.0, plot_heading, "Beta", "Magnetisation");
 
-        if (beta >= 0.9) {
-            disp_ferro_mag_domains_scttr_plt(Array, curr_latt_side, curr_latt_side, "Ferro-magnetic domains", "x-axis", "y-axis");
-        }
 
-        destroy_1d_array_i(knuth_arr);
-        destroy_2d_array_c(Array, curr_latt_side); // deallocate the memory
-    }
+    destroy_1d_array_i(knuth_arr);
+    destroy_2d_array_c(Array, LATTICE_SIDE_X); // deallocate the memory
 
     destroy_1d_array_d(beta_arr_for_beta_val);
     destroy_1d_array_d(mag_arr_for_beta_val);

@@ -4,4 +4,5 @@
 /Makefile
 /tute9*
 /gmon.out
-/prof_output
+/prof_output*
+/pgplot*.log
