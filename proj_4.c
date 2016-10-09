@@ -14,14 +14,14 @@
 #define MAX_SWEEPS 1100
 #define MEASUREMENT_SWEEP_SEPARATION 10
 
-#define LATTICE_SIDE_X 1000
-#define LATTICE_SIDE_Y 1000
+#define LATTICE_SIDE_X 50
+#define LATTICE_SIDE_Y 50
 
 #define BETA_LOWER 0.1
 #define BETA_UPPER 1.0
 #define BETA_INCR 0.01
 
-#define FERRO_MAG_DOMAINS_BETA 0.44
+#define FERRO_MAG_DOMAINS_BETA 0.4407
 
 #define ARRAY_SIZE 90
 
@@ -496,19 +496,15 @@ static void disp_ferro_mag_domains_scttr_plt(char ** array, int x_size, int y_si
     fymin = 0.0;
     fymax = (float) y_size;
 
-    //
-    // Set up the dispay region
-    //
     cpgbbuf();
 
-    cpgsci(1);
+    cpgsci(14);
     cpgenv(fxmin, fxmax, fymin, fymax, 0, 1);
-    /*
-     * Now make scatter plot with small dots plotted
-     */
+
+    cpgsci(1);
     cpgpt(array_counter, f_xp, f_yp, -1);
 
-    // Label the plot
+    cpgsci(15);
     cpglab(x_label, y_label, heading);
 
     cpgebuf();
@@ -525,11 +521,16 @@ int main(void)
     int lattice_size, sweep_counter, number_of_measurements_per_beta, mag_measurement_index_per_beta;
     int count_beta_vals;
     double beta, magnetisation_mean, this_magnetisation, energy, variance, mag_mean_sum_per_beta;
-    char plot_heading[256];
+    char plot_heading_line_plot[256];
+    char x_label_line_plot[256];
+    char y_label_line_plot[256];
+    char plot_heading_mag_dmns[256];
 
-    //    if (cpgbeg(0, "?", 1, 1) != 1) {
+//    if (cpgbeg(0, "?", 1, 1) != 1) {
 //    if (cpgbeg(0, "/XWINDOW", 1, 1) != 1) {
+//    if (cpgbeg(0, "/media/sf_Comp/code/proj_4/proj_4_plot.ps/CPS", 1, 1) != 1) {
     if (cpgbeg(0, "proj_4_plot.ps/CPS", 1, 1) != 1) {
+//    if (cpgbeg(0, "/PS", 1, 1) != 1) {
         exit(EXIT_FAILURE);
     }
     cpgask(1);
@@ -588,22 +589,19 @@ int main(void)
 
         count_beta_vals++;
 
-        if (beta >= FERRO_MAG_DOMAINS_BETA && beta <= FERRO_MAG_DOMAINS_BETA + BETA_INCR) {
-            disp_ferro_mag_domains_scttr_plt(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, "Ferro-magnetic domains", "x-axis", "y-axis");
+        if (beta >= FERRO_MAG_DOMAINS_BETA && beta < FERRO_MAG_DOMAINS_BETA + BETA_INCR) {
+            snprintf(plot_heading_mag_dmns, sizeof(plot_heading_mag_dmns), "Ferro-magnetic domains - lattice sides x: %d, y: %d, beta: %.4lf", LATTICE_SIDE_X, LATTICE_SIDE_Y, beta);
+            disp_ferro_mag_domains_scttr_plt(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, plot_heading_mag_dmns, "x-axis", "y-axis");
         }
     }
 
-    //    display_scatter_arr_char(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
+        display_scatter_arr_char(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
 
-    snprintf(plot_heading, sizeof(plot_heading), "Magnetisation versus beta - lattice side x: %d, lattice side y: %d", LATTICE_SIDE_X, LATTICE_SIDE_Y);
-//        disp_line(count_beta_vals, beta_arr_for_beta_val, mag_arr_for_beta_val, plot_heading, "Beta", "Magnetisation");
+    snprintf(plot_heading_line_plot, sizeof(plot_heading_line_plot), "Magnetisation versus beta - lattice side x: %d, lattice side y: %d", LATTICE_SIDE_X, LATTICE_SIDE_Y);
+    snprintf(x_label_line_plot, sizeof(x_label_line_plot), "Beta - from %.1lf to %.1lf with %.2lf increments (1/J)", BETA_LOWER, BETA_UPPER, BETA_INCR);
+    snprintf(y_label_line_plot, sizeof(y_label_line_plot), "Magnetisation (A/m)");
 
-//        int test_counter;
-//        for (test_counter = 0; test_counter < count_beta_vals; test_counter++) {
-//            printf("count_beta_vals: %d, beta: %lf, mag: %lf\n", test_counter, beta_arr_for_beta_val[test_counter], mag_arr_for_beta_val[test_counter]);
-//        }
-
-    disp_line_spec_axis(count_beta_vals, beta_arr_for_beta_val, mag_arr_for_beta_val, variance_arr_for_beta_val, 0.1, 1.0, 0.0, 1.0, plot_heading, "Beta", "Magnetisation");
+    disp_line_spec_axis(count_beta_vals, beta_arr_for_beta_val, mag_arr_for_beta_val, variance_arr_for_beta_val, 0.1, 1.0, 0.0, 1.0, plot_heading_line_plot, x_label_line_plot, y_label_line_plot);
 
 
     destroy_1d_array_i(knuth_arr);
@@ -615,5 +613,6 @@ int main(void)
     destroy_1d_array_d(mag_arr_per_beta);
 
     cpgend();
-//    printf("Critical temperature for phase change, T_sub_c: %.6E\n", 1.0 / boltzmann_const * beta_sub_c);
+
+    printf("Critical temperature for phase change, T_sub_c: %.6E\n", 1.0 / boltzmann_const * beta_sub_c);
 }
