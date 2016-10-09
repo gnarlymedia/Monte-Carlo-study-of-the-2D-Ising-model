@@ -11,17 +11,20 @@
 #define EXIT_SUCCESS 0
 #endif
 
-#define MAX_SWEEPS 1100
-#define MEASUREMENT_SWEEP_SEPARATION 10
+#define MAX_SWEEPS 11000
+#define MEASUREMENT_SWEEP_SEPARATION 100
 
-#define LATTICE_SIDE_X 50
-#define LATTICE_SIDE_Y 50
+#define LATTICE_SIDE_X 175
+#define LATTICE_SIDE_Y 175
 
 #define BETA_LOWER 0.1
 #define BETA_UPPER 1.0
 #define BETA_INCR 0.01
 
 #define FERRO_MAG_DOMAINS_BETA 0.4407
+
+#define TYPE_OF_START_HOT "hot"
+#define TYPE_OF_START "hot"
 
 #define ARRAY_SIZE 90
 
@@ -106,12 +109,11 @@ static void print_array_c(char ** array, int rows, int cols)
     }
 }
 
-static void display_scatter_arr_char(char **array, int rows, int cols, int pos_incr, char *heading, char *x_label,
-                              char *y_label)
+static void display_scatter_arr_char(char **array, int rows, int cols, int pos_incr, char *heading, char *x_label, char *y_label)
 {
     static float fxp[1];
     static float fyp[1];
-    int j, k, char_code;
+    int j, k, char_code, char_colour;
 
     // set starting position
     int starting_pos = pos_incr * rows;
@@ -123,11 +125,9 @@ static void display_scatter_arr_char(char **array, int rows, int cols, int pos_i
     float fymin = 0.0;
     float fymax = (float) pos_incr * (rows + 1);
 
-    //
-    // Set up the display region
-    //
-    cpgenv(fxmin, fxmax, fymin, fymax, 0, 1);
     cpgbbuf();
+    cpgsci(14);
+    cpgenv(fxmin, fxmax, fymin, fymax, 0, 1);
 
     for(j=0; j < rows; j++) {
         x_pos = pos_incr;
@@ -136,26 +136,27 @@ static void display_scatter_arr_char(char **array, int rows, int cols, int pos_i
         for(k=0; k < cols; k++) {
             if (array[j][k] == 'u') {
                 char_code = 30;
+                char_colour = 8;
             } else {
                 char_code = 31;
+                char_colour = 10;
             }
             fxp[0] = (float)x_pos;
 
             /*
-             * Now make scatter plot with correct symbol
+             * Now make scatter plot with correct symbol and colour
              */
+            cpgsci(char_colour);
             cpgpt(1, fxp, fyp, char_code);
             x_pos = x_pos + pos_incr;
         }
         y_pos = y_pos - pos_incr;
     }
 
-
-    // Label the plot
-
+    cpgsci(14);
     cpglab(x_label, y_label,heading);
-    // cpgsave saves the current graphics
-    cpgsave();
+
+    cpgebuf();
 
 }
 
@@ -273,7 +274,7 @@ static void fill_2d_array_c(char ** array, int x_size, int y_size, char * start)
             if (boundary == 0) {
                 // do this if we're not at a boundary
 
-                if (start == "hot") {
+                if (start == TYPE_OF_START_HOT) {
                     // randomise
                     if (drand48() > 0.5) {
                         spin = 'u';
@@ -415,6 +416,7 @@ static void disp_line_spec_axis(int num, double x_vals[], double y_vals[], doubl
     cpgenv(x_min, x_max, y_min, y_max, 0, 2);
 
     cpgsci(8);
+    // main line of plot
     cpgline(num, f_x_vals, f_y_vals);
 
     // print line for crit temp beta
@@ -439,34 +441,6 @@ static void disp_line_spec_axis(int num, double x_vals[], double y_vals[], doubl
     cpgerrb(6, num, f_x_vals, f_y_vals, f_err_vals, 1.0);
 
     cpgsci(1);
-    cpglab(x_label, y_label, heading);
-
-    cpgebuf();
-}
-
-static void disp_err_bar(int num, double x_vals[], double y_vals[], float x_min, float x_max, float y_min, float y_max, char *heading, char *x_label, char *y_label)
-{
-    int j = 0;
-    static float f_x_vals[ARRAY_SIZE];
-    static float f_y_vals[ARRAY_SIZE];
-    for(j = 0; j < num; j++)
-    {
-        f_x_vals[j] = x_vals[j];
-        f_y_vals[j] = y_vals[j];
-    }
-    cpgbbuf();
-    /*
-     * Now plot a histogram
-     */
-
-    cpgenv(x_min, x_max, y_min, y_max, 0, 2);
-
-    // for outputting to ps file
-    cpgsci(1);
-
-    cpgline(num, f_x_vals, f_y_vals);
-
-//    printf("v_min: %f, v_max: %f", v_min, v_max);
     cpglab(x_label, y_label, heading);
 
     cpgebuf();
@@ -504,7 +478,7 @@ static void disp_ferro_mag_domains_scttr_plt(char ** array, int x_size, int y_si
     cpgsci(1);
     cpgpt(array_counter, f_xp, f_yp, -1);
 
-    cpgsci(15);
+    cpgsci(14);
     cpglab(x_label, y_label, heading);
 
     cpgebuf();
@@ -524,7 +498,6 @@ int main(void)
     char plot_heading_line_plot[256];
     char x_label_line_plot[256];
     char y_label_line_plot[256];
-    char plot_heading_mag_dmns[256];
 
 //    if (cpgbeg(0, "?", 1, 1) != 1) {
 //    if (cpgbeg(0, "/XWINDOW", 1, 1) != 1) {
@@ -543,7 +516,7 @@ int main(void)
 
     // Allocate a region of memory of size LATTICE_SIDE_X*LATTICE_SIDE_Y*sizeof(double) and return a pointer to it
     char **Array = create_2d_array_c(LATTICE_SIDE_X, LATTICE_SIDE_Y);
-    fill_2d_array_c(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, "cold");
+    fill_2d_array_c(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, TYPE_OF_START);
 
 //        print_array_c(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y);
 
@@ -557,7 +530,6 @@ int main(void)
     count_beta_vals = 0;
 
     for (beta = BETA_LOWER; beta <= BETA_UPPER; beta = beta + BETA_INCR) {
-//            beta = BETA_INCR * count_beta_vals;
         beta_arr_for_beta_val[count_beta_vals] = beta;
         mag_measurement_index_per_beta = 0;
         mag_mean_sum_per_beta = 0.0;
@@ -567,13 +539,10 @@ int main(void)
             //            print_array_knuth(knuth_arr, knuth_arr_size);
 
             sweep_2d_array(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, knuth_arr, lattice_size, beta);
-            //        printf("Flipped element of array at x = %d, y = %d: %c\n", x_rand_i, y_rand_i, query_array(Array, x_rand_i, y_rand_i, LATTICE_SIDE_X, LATTICE_SIDE_Y));
 
-            // allow 100 sweeps before measuring
-            // and only measure magnetisation every so often
+            // allow 100 sweeps before measuring and only measure magnetisation every so often
             if (sweep_counter > 100 && sweep_counter % MEASUREMENT_SWEEP_SEPARATION == 0) {
                 // take a measurement
-//                    energy = calc_energy_of_lattice(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y);
                 this_magnetisation = calc_mag_of_lattice(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y);
                 mag_arr_per_beta[mag_measurement_index_per_beta] = this_magnetisation;
                 mag_mean_sum_per_beta = mag_mean_sum_per_beta + this_magnetisation;
@@ -590,16 +559,22 @@ int main(void)
         count_beta_vals++;
 
         if (beta >= FERRO_MAG_DOMAINS_BETA && beta < FERRO_MAG_DOMAINS_BETA + BETA_INCR) {
-            snprintf(plot_heading_mag_dmns, sizeof(plot_heading_mag_dmns), "Ferro-magnetic domains - lattice sides x: %d, y: %d, beta: %.4lf", LATTICE_SIDE_X, LATTICE_SIDE_Y, beta);
-            disp_ferro_mag_domains_scttr_plt(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, plot_heading_mag_dmns, "x-axis", "y-axis");
+            char plot_heading_mag_dmns[256];
+            snprintf(plot_heading_mag_dmns, sizeof(plot_heading_mag_dmns), "Ferro-magnetic domains of spin-up lattice sites - side x: %d, y: %d, beta: %.4lf, start: %s", LATTICE_SIDE_X, LATTICE_SIDE_Y, beta, TYPE_OF_START);
+            disp_ferro_mag_domains_scttr_plt(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, plot_heading_mag_dmns, "Lattice side - x direction", "Lattice side - y direction");
+        }
+
+        if (LATTICE_SIDE_Y <= 50 && LATTICE_SIDE_Y <= 50 && beta == BETA_LOWER) {
+            // show initial plot of spins
+            char plot_heading_spins_plot[256];
+            snprintf(plot_heading_spins_plot, sizeof(plot_heading_spins_plot), "Plot of 2D character array representing lattice spins, lattice sides x: %d, y: %d, beta: %.4lf", LATTICE_SIDE_X, LATTICE_SIDE_Y, beta);
+            display_scatter_arr_char(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, 1, plot_heading_spins_plot, "Lattice side - x direction", "Lattice side - y direction");
         }
     }
 
-        display_scatter_arr_char(Array, LATTICE_SIDE_X, LATTICE_SIDE_Y, 1, "Plotting a 2-D array of char representing spins", "x-axis", "y-axis");
-
     snprintf(plot_heading_line_plot, sizeof(plot_heading_line_plot), "Magnetisation versus beta - lattice side x: %d, lattice side y: %d", LATTICE_SIDE_X, LATTICE_SIDE_Y);
-    snprintf(x_label_line_plot, sizeof(x_label_line_plot), "Beta - from %.1lf to %.1lf with %.2lf increments (1/J)", BETA_LOWER, BETA_UPPER, BETA_INCR);
-    snprintf(y_label_line_plot, sizeof(y_label_line_plot), "Magnetisation (A/m)");
+    snprintf(x_label_line_plot, sizeof(x_label_line_plot), "Beta (1/J) - from %.1lf to %.1lf with %.2lf increments", BETA_LOWER, BETA_UPPER, BETA_INCR);
+    snprintf(y_label_line_plot, sizeof(y_label_line_plot), "Magnetisation (dimensionless)");
 
     disp_line_spec_axis(count_beta_vals, beta_arr_for_beta_val, mag_arr_for_beta_val, variance_arr_for_beta_val, 0.1, 1.0, 0.0, 1.0, plot_heading_line_plot, x_label_line_plot, y_label_line_plot);
 
