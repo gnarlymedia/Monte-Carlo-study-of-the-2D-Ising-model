@@ -11,11 +11,11 @@
 #define EXIT_SUCCESS 0
 #endif
 
-#define MAX_SWEEPS 11000
-#define MEASUREMENT_SWEEP_SEPARATION 100
+#define MAX_SWEEPS 1100
+#define MEASUREMENT_SWEEP_SEPARATION 10
 
-#define LATTICE_SIDE_X 175
-#define LATTICE_SIDE_Y 175
+#define LATTICE_SIDE_X 64
+#define LATTICE_SIDE_Y 64
 
 #define BETA_LOWER 0.1
 #define BETA_UPPER 1.0
@@ -24,7 +24,7 @@
 #define FERRO_MAG_DOMAINS_BETA 0.4407
 
 #define TYPE_OF_START_HOT "hot"
-#define TYPE_OF_START "hot"
+#define TYPE_OF_START "cold"
 
 #define ARRAY_SIZE 90
 
@@ -572,7 +572,7 @@ int main(void)
         }
     }
 
-    snprintf(plot_heading_line_plot, sizeof(plot_heading_line_plot), "Magnetisation versus beta - lattice side x: %d, lattice side y: %d", LATTICE_SIDE_X, LATTICE_SIDE_Y);
+    snprintf(plot_heading_line_plot, sizeof(plot_heading_line_plot), "Magnetisation versus beta - lattice side x: %d, y: %d, type of start: %s", LATTICE_SIDE_X, LATTICE_SIDE_Y, TYPE_OF_START);
     snprintf(x_label_line_plot, sizeof(x_label_line_plot), "Beta (1/J) - from %.1lf to %.1lf with %.2lf increments", BETA_LOWER, BETA_UPPER, BETA_INCR);
     snprintf(y_label_line_plot, sizeof(y_label_line_plot), "Magnetisation (dimensionless)");
 
