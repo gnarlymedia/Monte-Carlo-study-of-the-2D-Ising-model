@@ -17,3 +17,6 @@ Then run:
 
 ### Within CLion, JetBrains' IDE for C projects
 The `CMakeLists.txt` file should give you everything you need to specify build targets and required libraries, allowing you to build and run within the IDE.
+
+## Preparation of report
+You can build the finished pdf of the report using the `Project4.tex` file and your favourite LaTeX compilation program. I used TexStudio on Mac <http://www.texstudio.org>
