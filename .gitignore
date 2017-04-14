@@ -3,3 +3,8 @@
 /core
 /Makefile
 /tute9*
+/gmon.out
+/prof_output*
+/report
+!/report/Project4.tex
+!/report/plots
