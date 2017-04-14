@@ -2,7 +2,6 @@
 !/proj_*.c
 /core
 /Makefile
-/tute9*
 /gmon.out
 /prof_output*
 /report/*
