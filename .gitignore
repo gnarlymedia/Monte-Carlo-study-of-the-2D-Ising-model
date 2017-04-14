@@ -6,5 +6,5 @@
 /gmon.out
 /prof_output*
 /report/*
-!/report/Project4.tex
+!/report/Project*.tex
 !/report/plots/
