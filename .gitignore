@@ -5,4 +5,6 @@
 /tute9*
 /gmon.out
 /prof_output*
-/pgplot*.log
+/report
+!/report/Project4.tex
+!/report/plots

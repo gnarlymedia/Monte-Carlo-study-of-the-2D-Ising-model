@@ -500,9 +500,9 @@ int main(void)
     char y_label_line_plot[256];
 
 //    if (cpgbeg(0, "?", 1, 1) != 1) {
-//    if (cpgbeg(0, "/XWINDOW", 1, 1) != 1) {
+    if (cpgbeg(0, "/XWINDOW", 1, 1) != 1) {
 //    if (cpgbeg(0, "/media/sf_Comp/code/proj_4/proj_4_plot.ps/CPS", 1, 1) != 1) {
-    if (cpgbeg(0, "proj_4_plot.ps/CPS", 1, 1) != 1) {
+//    if (cpgbeg(0, "proj_4_plot.ps/CPS", 1, 1) != 1) {
 //    if (cpgbeg(0, "/PS", 1, 1) != 1) {
         exit(EXIT_FAILURE);
     }
